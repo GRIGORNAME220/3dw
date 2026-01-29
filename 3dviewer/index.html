@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>3D Просмотрщик моделей</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    background: #2b2b2b;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+.container {
+    padding: 16px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    background: #1f1f1f;
+    color: white;
+    border-radius: 6px;
+    border: none;
+    margin-bottom: 10px;
+}
+
+.viewer {
+    height: 260px;
+    background: yellow;
+    border: 4px solid #111;
+    margin-bottom: 15px;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+button {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    font-weight: bold;
+}
+
+.blue { background: #2196f3; }
+.green { background: #4caf50; }
+.purple { background: #9c27b0; }
+.orange { background: #ff9800; }
+.pink { background: #e91e63; }
+.red { background: #f44336; }
+.gray { background: #607d8b; }
+
+.colors {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>3D Просмотрщик моделей</h1>
+
+<select id="modelSelect">
+    <option value="models/cube.glb">Куб</option>
+    <option value="models/oven.glb">Печь</option>
+    <option value="models/robot.glb">Робот</option>
+</select>
+
+<div class="viewer" id="viewer"></div>
+
+<div class="buttons">
+    <button class="blue" onclick="setMode('rotate')">ВРАЩЕНИЕ</button>
+    <button class="green" onclick="setMode('pulse')">ПУЛЬСАЦИЯ</button>
+    <button class="purple" onclick="setMode('fast')">ВРАЩЕНИЕ+</button>
+
+    <button class="orange" onclick="jump()">ПРЫЖОК</button>
+    <button class="pink" onclick="flip()">САЛЬТО</button>
+    <button class="red" onclick="setMode('')">СТОП</button>
+</div>
+
+<button class="gray" style="width:100%;margin-top:10px" onclick="resetModel()">СБРОСИТЬ</button>
+
+<div class="colors">
+    <button onclick="setBg('red')">КРАСНЫЙ</button>
+    <button onclick="setBg('green')">ЗЕЛЕНЫЙ</button>
+    <button onclick="setBg('blue')">СИНИЙ</button>
+    <button onclick="setBg('yellow')">ЖЕЛТЫЙ</button>
+</div>
+
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+let scene = new THREE.Scene();
+
+let camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / 260,
+    0.1,
+    100
+);
+camera.position.set(0, 1.5, 4);
+
+let renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth - 32, 260);
+document.getElementById("viewer").appendChild(renderer.domElement);
+
+// Свет
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+let light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 7);
+scene.add(light);
+
+// Загрузка моделей
+let loader = new THREE.GLTFLoader();
+let model = null;
+let mode = "";
+
+function loadModel(path) {
+    if (model) scene.remove(model);
+
+    loader.load(path, gltf => {
+        model = gltf.scene;
+
+        // Центрирование
+        model.position.set(0, 0, 0);
+        model.scale.set(1.2, 1.2, 1.2);
+
+        scene.add(model);
+    });
+}
+
+// Загрузка первой модели
+loadModel("models/cube.glb");
+
+// Переключение моделей
+document.getElementById("modelSelect").onchange = e => {
+    loadModel(e.target.value);
+};
+
+// Анимации
+function animate() {
+    requestAnimationFrame(animate);
+
+    if (model) {
+        if (mode === "rotate") model.rotation.y += 0.02;
+        if (mode === "fast") model.rotation.y += 0.06;
+        if (mode === "pulse") {
+            let s = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+            model.scale.set(s, s, s);
+        }
+    }
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// Управление
+function setMode(m) { mode = m; }
+
+function resetModel() {
+    mode = "";
+    if (model) {
+        model.rotation.set(0, 0, 0);
+        model.scale.set(1.2, 1.2, 1.2);
+        model.position.set(0, 0, 0);
+    }
+}
+
+function jump() {
+    if (!model) return;
+    model.position.y = 0.6;
+    setTimeout(() => model.position.y = 0, 300);
+}
+
+function flip() {
+    if (!model) return;
+    model.rotation.x += Math.PI;
+}
+
+function setBg(color) {
+    document.getElementById("viewer").style.background = color;
+}
+</script>
+
+</body>
+</html>
